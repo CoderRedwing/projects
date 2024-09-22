@@ -1,4 +1,4 @@
-Add a global package.json file that controll both todo-api and totd-tracker(
+Add a global package.json file that controll both todo-api and todo-tracker(
 like installing packages , spin up both together or seperately )
 
 add .env.example file so anyone does not have to create .env file it can just
