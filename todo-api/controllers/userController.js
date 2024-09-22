@@ -3,69 +3,76 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // user registration
-
 const registerUser = async (req, res) => {
-    const {name, email, password} = req.body;
-     
+    const { name, email, password } = req.body;
+
     if (!name || !email || !password) {
         return res.status(400).json({ message: "Please provide all required fields: name, email, and password." });
     }
 
     try {
-        // check if user already exists 
-        let user = await User.findOne({email});
+        // Check if the user already exists
+        let user = await User.findOne({ email });
         if (user) {
-            return res.status(400).json({message: 'user already exists'});
+            return res.status(400).json({ message: 'User already exists' });
         }
 
-        //hash password
+        // Hash password
         const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        const hashedPassword = await bcrypt.hash(password,salt);   
-        
-        // create new user 
-
-        user = new User({name, email, password: hashedPassword});
+        // Create a new user
+        user = new User({ name, email, password: hashedPassword });
         await user.save();
 
-        // create jwt token
+        // Create JWT token
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        const token = jwt.sign({userId: user._id},process.env.JWT_SECRET,{expiresIn:'1d'});
-        res.status(201).json({token});
+        // Set the token as an HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Secure flag set to true if in production
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
+        });
+
+        res.status(201).json({ message: 'Registration successful' });
     } catch (error) {
         console.error('Error in registerUser:', error);
-        res.status(500).json({message: 'server error',error: error.message});
-        
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
-
 };
 
-// user login 
-
+// user login
 const loginUser = async (req, res) => {
-    const {email, password} = req.body;
+    const { email, password } = req.body;
 
     try {
-        const user = await User.findOne({email});
-        
+        const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({message:'invalid credential'});
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
-
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({message: 'invalid credential'});
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({userId: user._id},process.env.JWT_SECRET,{expiresIn: '1d'});
-        res.status(200).json({token});
-        
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        // Set the token as an HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Secure flag set to true if in production
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
+        });
+
+        res.status(200).json({ message: 'Login successful' });
     } catch (error) {
-        console.error('Error in registerUser:', error);
-        res.status(500).json({message: 'server error'});
-        
+        console.error('Error in loginUser:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
-module.exports = {registerUser,loginUser};
+module.exports = { registerUser, loginUser };
