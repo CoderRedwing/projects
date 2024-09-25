@@ -20,15 +20,15 @@ const registerUser = async (req, res) => {
     }
 
         // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        // const salt = await bcrypt.genSalt(10);
+        // const hashedPassword = await bcrypt.hash(password, salt);
 
         // Create a new user
-        user = new User({ name, email, password: hashedPassword });
+        user = new User({ name, email, password });
         await user.save();
 
     // Create JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
 
@@ -42,7 +42,7 @@ const registerUser = async (req, res) => {
 
     res.status(201).json({ message: "Registration successful" });
   } catch (error) {
-    console.error("Error in registerUser:", error);
+  
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -50,30 +50,24 @@ const registerUser = async (req, res) => {
 // user login
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
-  console.log(password);
-  console.log("Login attempt:", { email }); // Log the email being used to log in
 
   try {
     const user = await User.find({ email: email }).exec();
     if (!user) {
-      console.warn("User not found:", email); // Log if the user is not found
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    console.log("User found:", user[0].password); // Log the found user ID
 
     const isMatch = await bcrypt.compare(password, user[0].password);
-    console.log(isMatch);
-    if (!isMatch) {
-      console.warn("Password mismatch for user:", email); // Log if the password does not match
+    if (!isMatch) { 
+      
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ user}, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
-    console.log("JWT token created for user:", user._id); // Log token creation
-
+    const decode = await jwt.verify(token , process.env.JWT_SECRET)
     // Set the token as an HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
@@ -82,10 +76,8 @@ const loginUser = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
     });
 
-    console.log("Login successful for user:", user._id); // Log successful login
     res.status(200).json({ message: "Login successful" });
   } catch (error) {
-    console.error("Error in loginUser:", error); // Log any errors
     res.status(500).json({ message: "Server error" });
   }
 };

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const dotenv = require('dotenv');
+const Todo = require('../models/todoModel');
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ const authenticateToken = (req, res, next) => {
 const authorizeUser = async (req, res, next) => {
     const todoId = req.params.id;
     const userId = req.user.id;
+    
 
     try {
         const todo = await Todo.findById(todoId);
@@ -32,7 +34,7 @@ const authorizeUser = async (req, res, next) => {
         }
         next();
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server mn error' });
     }
 };
 
@@ -40,8 +42,10 @@ const protect = async (req, res, next) => {
     const token = req.cookies.token; // Read token from cookies
     if (token) {
         try {
+            
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = await User.findById(decoded.userId).select('-password');
+            
+            req.user = await User.findById(decoded.user[0]._id).select('-password');
             next();
         } catch (error) {
             res.status(401).json({ message: 'Not authorized, token failed' });
